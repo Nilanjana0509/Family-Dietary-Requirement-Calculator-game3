@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Nutrition Calculator (NIN, India)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .table-cell-custom {
+            padding: 0.75rem;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.875rem;
+        }
+        .table-header-custom {
+            padding: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            vertical-align: middle;
+            background-color: #f3f4f6;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            background-color: #1f2937;
+            color: white;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .guideline-li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .guideline-li::before {
+            content: '✔';
+            position: absolute;
+            left: 0;
+            color: #16a34a; /* green-600 */
+        }
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8 no-print">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Family Dietary Requirement Calculator</h1>
+            <p class="text-gray-600 mt-2">Aligned with the **Dietary Guidelines for Indians (2024)** using calculations from the ICMR-NIN RDA 2020 Report.</p>
+        </header>
+
+        <main class="no-print">
+            <!-- Step 1: Data Input -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Family Members Section -->
+                <div>
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800">Step 1a: Add Family Members</h2>
+                        <form id="add-member-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                            <div class="sm:col-span-2 grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="age_years" class="block text-sm font-medium text-gray-700">Years</label>
+                                    <input type="number" id="age_years" name="age_years" min="0" max="120" placeholder="e.g., 30" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                </div>
+                                <div>
+                                    <label for="age_months" class="block text-sm font-medium text-gray-700">Months</label>
+                                    <input type="number" id="age_months" name="age_months" min="0" max="11" placeholder="e.g., 6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                                <select id="gender" name="gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="activity" class="block text-sm font-medium text-gray-700">Activity Level</label>
+                                <select id="activity" name="activity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                    <option value="sedentary">Sedentary</option>
+                                    <option value="moderate">Moderate</option>
+                                    <option value="heavy">Heavy</option>
+                                </select>
+                            </div>
+                            <div id="status-container" class="hidden sm:col-span-2">
+                                <label for="status" class="block text-sm font-medium text-gray-700">Physiological Status</label>
+                                <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                                    <option value="normal">Normal</option>
+                                    <option value="pregnant">Pregnant</option>
+                                    <option value="lactating_0_6">Lactating (0-6m)</option>
+                                    <option value="lactating_7_12">Lactating (7-12m)</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                    Add Member
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                         <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold text-gray-800">Family List</h2>
+                            <button id="clear-family-btn" class="text-sm text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed">Clear All</button>
+                        </div>
+                        <div id="family-list" class="space-y-3 max-h-60 overflow-y-auto">
+                            <p class="text-gray-500">No members added yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consumption Section -->
+                <div>
+                     <div class="bg-white p-6 rounded-lg shadow-md mb-6 mt-8">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800">Step 1b: Add Consumed Food (24-Hour Recall)</h2>
+                        <form id="add-food-form" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                            <div class="sm:col-span-2">
+                                <label for="food-item" class="block text-sm font-medium text-gray-700">Food Item</label>
+                                <select id="food-item" name="food-item" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"></select>
+                            </div>
+                             <div>
+                                <label for="food-quantity" class="block text-sm font-medium text-gray-700">Quantity (grams)</label>
+                                <input type="number" id="food-quantity" name="food-quantity" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                            </div>
+                            <div class="flex justify-end">
+                                 <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Add Food</button>
+                            </div>
+                        </form>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Today's Consumed Foods List</h3>
+                        <div id="consumed-food-list" class="space-y-2 max-h-60 overflow-y-auto">
+                             <p class="text-gray-500">No food added yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Calculation Buttons -->
+            <div class="bg-white p-6 rounded-lg shadow-md mt-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Step 2: Calculate</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <button id="calculate-rda-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed w-full" disabled>
+                        Calculate Recommended Intake (RDA)
+                    </button>
+                    <button id="calculate-balance-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed w-full" disabled>
+                        Calculate Consumption & Balance
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Print Area -->
+        <div id="print-area">
+            <div id="results-container" class="hidden mt-8">
+                 <div class="text-center mb-8 hidden print:block">
+                    <h1 class="text-3xl font-bold text-gray-900">Family Dietary Requirement Report</h1>
+                    <p class="text-gray-600 mt-2" id="report-date"></p>
+                </div>
+                <div id="balance-results" class="bg-white p-6 rounded-lg shadow-md mb-8 overflow-x-auto"></div>
+                <div id="food-group-balance-results" class="bg-white p-6 rounded-lg shadow-md mb-8 overflow-x-auto"></div>
+                <div id="nutrient-results" class="bg-white p-6 rounded-lg shadow-md mb-8 overflow-x-auto"></div>
+                <div id="food-group-results" class="bg-white p-6 rounded-lg shadow-md mb-8 overflow-x-auto"></div>
+            </div>
+
+            <div id="feature-buttons" class="hidden flex-col md:flex-row gap-4 justify-center my-8 no-print">
+                <button id="meal-plan-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-purple-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 w-full md:w-auto">
+                    Generate Sample Meal Plan
+                </button>
+                <button id="print-btn" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-full md:w-auto">
+                    Print Report
+                </button>
+                 <button id="share-btn" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-full md:w-auto">
+                    Share App Link
+                </button>
+            </div>
+
+            <div id="meal-plan-container" class="hidden bg-white p-6 rounded-lg shadow-md mb-8"></div>
+        </div>
+
+        <div id="guidelines-summary" class="bg-white p-6 rounded-lg shadow-md mt-8 no-print">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Key Principles from the Dietary Guidelines for Indians (2024)</h2>
+            <ul class="text-gray-700 space-y-2">
+                <li class="guideline-li">Eat a variety of foods to ensure a balanced diet.</li>
+                <li class="guideline-li">Eat plenty of vegetables, legumes, and fruits.</li>
+                <li class="guideline-li">Use oils and fats in moderation.</li>
+                <li class="guideline-li">Obtain good quality protein through a combination of foods.</li>
+                <li class="guideline-li">Minimize the consumption of High Fat, Sugar, Salt (HFSS) and ultra-processed foods.</li>
+            </ul>
+        </div>
+        
+        <div id="toast-notification" class="toast"></div>
+    </div>
+
+    <div id="share-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50 no-print">
+        <div class="relative mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Copy App Link</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">Automatic copy failed. Please copy the link below manually:</p>
+                    <input type="text" id="share-link-input" readonly class="w-full bg-gray-100 text-gray-700 border border-gray-300 rounded-md p-2 text-sm">
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-modal-btn" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DATA STORE (Based on ICMR-NIN RDA 2020) ---
+            const rdaData = {
+                nutrients: {
+                    infant_0_6: { male: { energy: 550, protein: 8.0, calcium: 300, iron: 3, vitaminA: 350, thiamin: 0.2, riboflavin: 0.4, vitaminC: 25 }, female: { energy: 550, protein: 8.0, calcium: 300, iron: 3, vitaminA: 350, thiamin: 0.2, riboflavin: 0.4, vitaminC: 25 } },
+                    infant_7_12: { male: { energy: 670, protein: 10.5, calcium: 300, iron: 3, vitaminA: 350, thiamin: 0.4, riboflavin: 0.6, vitaminC: 30 }, female: { energy: 670, protein: 10.5, calcium: 300, iron: 3, vitaminA: 350, thiamin: 0.4, riboflavin: 0.6, vitaminC: 30 } },
+                    children_1_3: { male: { energy: 1010, protein: 12.5, calcium: 500, iron: 8, vitaminA: 390, thiamin: 0.7, riboflavin: 1.1, vitaminC: 30 }, female: { energy: 1010, protein: 12.5, calcium: 500, iron: 8, vitaminA: 390, thiamin: 0.7, riboflavin: 1.1, vitaminC: 30 } },
+                    children_4_6: { male: { energy: 1350, protein: 16.0, calcium: 600, iron: 11, vitaminA: 510, thiamin: 0.9, riboflavin: 1.3, vitaminC: 35 }, female: { energy: 1350, protein: 16.0, calcium: 600, iron: 11, vitaminA: 510, thiamin: 0.9, riboflavin: 1.3, vitaminC: 35 } },
+                    children_7_9: { male: { energy: 1710, protein: 23.0, calcium: 800, iron: 14, vitaminA: 630, thiamin: 1.0, riboflavin: 1.2, vitaminC: 40 }, female: { energy: 1710, protein: 23.0, calcium: 800, iron: 14, vitaminA: 630, thiamin: 1.0, riboflavin: 1.2, vitaminC: 40 } },
+                    children_10_12: { male: { energy: 2150, protein: 31.8, calcium: 850, iron: 16, vitaminA: 780, thiamin: 1.1, riboflavin: 1.4, vitaminC: 44 }, female: { energy: 2010, protein: 40.4, calcium: 850, iron: 18, vitaminA: 630, thiamin: 1.0, riboflavin: 1.2, vitaminC: 44 } },
+                    children_13_15: { male: { energy: 2750, protein: 44.9, calcium: 1000, iron: 25, vitaminA: 870, thiamin: 1.4, riboflavin: 1.8, vitaminC: 50 }, female: { energy: 2330, protein: 43.2, calcium: 1000, iron: 22, vitaminA: 830, thiamin: 1.1, riboflavin: 1.4, vitaminC: 52 } },
+                    children_16_18: { male: { energy: 3020, protein: 55.4, calcium: 1050, iron: 28, vitaminA: 890, thiamin: 1.5, riboflavin: 2.1, vitaminC: 55 }, female: { energy: 2440, protein: 46.2, calcium: 1050, iron: 26, vitaminA: 800, thiamin: 1.2, riboflavin: 1.4, vitaminC: 60 } },
+                    adult: {
+                        male: {
+                            sedentary: { energy: 2110, protein: 54, calcium: 1000, iron: 19, vitaminA: 1000, thiamin: 1.2, riboflavin: 1.6, vitaminC: 80 },
+                            moderate: { energy: 2710, protein: 54, calcium: 1000, iron: 19, vitaminA: 1000, thiamin: 1.4, riboflavin: 2.0, vitaminC: 80 },
+                            heavy: { energy: 3470, protein: 54, calcium: 1000, iron: 19, vitaminA: 1000, thiamin: 1.8, riboflavin: 2.5, vitaminC: 80 }
+                        },
+                        female: {
+                            sedentary: { energy: 1660, protein: 46, calcium: 1000, iron: 29, vitaminA: 840, thiamin: 0.9, riboflavin: 1.2, vitaminC: 65 },
+                            moderate: { energy: 2130, protein: 46, calcium: 1000, iron: 29, vitaminA: 840, thiamin: 1.1, riboflavin: 1.5, vitaminC: 65 },
+                            heavy: { energy: 2720, protein: 46, calcium: 1000, iron: 29, vitaminA: 840, thiamin: 1.4, riboflavin: 1.9, vitaminC: 65 },
+                            pregnant: { energy: 1660 + 350, protein: 46 + 9.5, calcium: 1200, iron: 40, vitaminA: 900, thiamin: 1.4, riboflavin: 1.7, vitaminC: 80 },
+                            lactating_0_6: { energy: 1660 + 600, protein: 46 + 16.9, calcium: 1200, iron: 23, vitaminA: 950, thiamin: 1.5, riboflavin: 1.8, vitaminC: 115 },
+                            lactating_7_12: { energy: 1660 + 520, protein: 46 + 13.2, calcium: 1200, iron: 23, vitaminA: 950, thiamin: 1.5, riboflavin: 1.8, vitaminC: 115 }
+                        }
+                    }
+                },
+                foodGroups: {
+                    infant_0_6: { male: { cereals: 0, pulses: 0, milk: 0, roots: 0, greenLeafy: 0, otherVeg: 0, fruits: 0, fats: 0, sugar: 0, nuts: 0 }, female: { cereals: 0, pulses: 0, milk: 0, roots: 0, greenLeafy: 0, otherVeg: 0, fruits: 0, fats: 0, sugar: 0, nuts: 0 } },
+                    infant_7_12: { male: { cereals: 60, pulses: 15, milk: 300, roots: 25, greenLeafy: 25, otherVeg: 25, fruits: 100, fats: 10, sugar: 0, nuts: 0 }, female: { cereals: 60, pulses: 15, milk: 300, roots: 25, greenLeafy: 25, otherVeg: 25, fruits: 100, fats: 10, sugar: 0, nuts: 0 } },
+                    children_1_3: { male: { cereals: 180, pulses: 45, milk: 400, roots: 50, greenLeafy: 50, otherVeg: 50, fruits: 100, fats: 20, sugar: 20, nuts: 10 }, female: { cereals: 180, pulses: 45, milk: 400, roots: 50, greenLeafy: 50, otherVeg: 50, fruits: 100, fats: 20, sugar: 20, nuts: 10 } },
+                    children_4_6: { male: { cereals: 240, pulses: 60, milk: 400, roots: 50, greenLeafy: 50, otherVeg: 100, fruits: 100, fats: 25, sugar: 25, nuts: 15 }, female: { cereals: 240, pulses: 60, milk: 400, roots: 50, greenLeafy: 50, otherVeg: 100, fruits: 100, fats: 25, sugar: 25, nuts: 15 } },
+                    children_7_9: { male: { cereals: 270, pulses: 60, milk: 400, roots: 100, greenLeafy: 100, otherVeg: 100, fruits: 100, fats: 25, sugar: 25, nuts: 20 }, female: { cereals: 270, pulses: 60, milk: 400, roots: 100, greenLeafy: 100, otherVeg: 100, fruits: 100, fats: 25, sugar: 25, nuts: 20 } },
+                    children_10_12: { male: { cereals: 360, pulses: 75, milk: 400, roots: 100, greenLeafy: 100, otherVeg: 150, fruits: 100, fats: 30, sugar: 25, nuts: 20 }, female: { cereals: 300, pulses: 60, milk: 400, roots: 100, greenLeafy: 100, otherVeg: 150, fruits: 100, fats: 25, sugar: 20, nuts: 20 } },
+                    children_13_15: { male: { cereals: 420, pulses: 90, milk: 400, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 40, sugar: 30, nuts: 30 }, female: { cereals: 360, pulses: 75, milk: 400, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 35, sugar: 25, nuts: 25 } },
+                    children_16_18: { male: { cereals: 480, pulses: 90, milk: 400, roots: 200, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 50, sugar: 30, nuts: 30 }, female: { cereals: 360, pulses: 75, milk: 400, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 35, sugar: 25, nuts: 25 } },
+                    adult: {
+                        male: {
+                            sedentary: { cereals: 360, pulses: 75, milk: 300, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 25, sugar: 20, nuts: 20 },
+                            moderate: { cereals: 450, pulses: 90, milk: 300, roots: 200, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 30, sugar: 30, nuts: 30 },
+                            heavy: { cereals: 570, pulses: 105, milk: 300, roots: 200, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 40, sugar: 40, nuts: 30 }
+                        },
+                        female: {
+                            sedentary: { cereals: 300, pulses: 75, milk: 300, roots: 100, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 20, sugar: 20, nuts: 20 },
+                            moderate: { cereals: 360, pulses: 75, milk: 300, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 25, sugar: 25, nuts: 25 },
+                            heavy: { cereals: 480, pulses: 90, milk: 300, roots: 150, greenLeafy: 100, otherVeg: 200, fruits: 150, fats: 30, sugar: 30, nuts: 30 },
+                            pregnant: { cereals: 300 + 75, pulses: 75 + 15, milk: 500, roots: 100, greenLeafy: 150, otherVeg: 250, fruits: 200, fats: 30, sugar: 25, nuts: 30 },
+                            lactating_0_6: { cereals: 300 + 120, pulses: 75 + 30, milk: 550, roots: 150, greenLeafy: 150, otherVeg: 250, fruits: 200, fats: 35, sugar: 30, nuts: 30 },
+                            lactating_7_12: { cereals: 300 + 90, pulses: 75 + 20, milk: 550, roots: 150, greenLeafy: 150, otherVeg: 250, fruits: 200, fats: 35, sugar: 30, nuts: 30 }
+                        }
+                    }
+                }
+            };
+
+            const foodDB = {
+                // Values per 100g from "Nutritive Value of Indian Foods" by NIN, with food group
+                // Cereals
+                rice_raw: { name: "Rice, raw", group: 'cereals', energy: 345, protein: 6.8, calcium: 10, iron: 0.7, vitaminA: 0, thiamin: 0.41, riboflavin: 0.04, vitaminC: 0 },
+                wheat_flour_atta: { name: "Wheat Flour (Atta)", group: 'cereals', energy: 341, protein: 12.1, calcium: 48, iron: 4.9, vitaminA: 9, thiamin: 0.49, riboflavin: 0.17, vitaminC: 0 },
+                ragi: { name: "Ragi (Finger Millet)", group: 'cereals', energy: 328, protein: 7.3, calcium: 344, iron: 3.9, vitaminA: 42, thiamin: 0.42, riboflavin: 0.19, vitaminC: 0 },
+                jowar: { name: "Jowar (Sorghum)", group: 'cereals', energy: 349, protein: 10.4, calcium: 25, iron: 4.1, vitaminA: 47, thiamin: 0.37, riboflavin: 0.13, vitaminC: 0 },
+                bajra: { name: "Bajra (Pearl Millet)", group: 'cereals', energy: 361, protein: 11.6, calcium: 42, iron: 8.0, vitaminA: 132, thiamin: 0.33, riboflavin: 0.15, vitaminC: 0 },
+                bread_white: { name: "Bread, White", group: 'cereals', energy: 245, protein: 7.8, calcium: 15, iron: 1.7, vitaminA: 0, thiamin: 0.1, riboflavin: 0.08, vitaminC: 0 },
+                oats: { name: "Oats", group: 'cereals', energy: 389, protein: 16.9, calcium: 54, iron: 4.7, vitaminA: 0, thiamin: 0.76, riboflavin: 0.14, vitaminC: 0 },
+                semolina: { name: "Semolina (Sooji/Rava)", group: 'cereals', energy: 360, protein: 12.7, calcium: 17, iron: 1.2, vitaminA: 0, thiamin: 0.28, riboflavin: 0.08, vitaminC: 0 },
+                puffed_rice: { name: "Puffed Rice (Murmura)", group: 'cereals', energy: 345, protein: 6.8, calcium: 6, iron: 31.7, vitaminA: 0, thiamin: 0.21, riboflavin: 0.01, vitaminC: 0 },
+                maida: { name: "Refined Wheat Flour (Maida)", group: 'cereals', energy: 364, protein: 11.8, calcium: 15, iron: 1.5, vitaminA: 0, thiamin: 0.12, riboflavin: 0.04, vitaminC: 0 },
+                brown_bread: { name: "Bread, Brown", group: 'cereals', energy: 250, protein: 10, calcium: 100, iron: 2.5, vitaminA: 0, thiamin: 0.3, riboflavin: 0.15, vitaminC: 0 },
+                
+                // Pulses & Flesh Foods
+                toor_dal: { name: "Toor Dal (Arhar)", group: 'pulses', isFleshFood: false, energy: 335, protein: 22.3, calcium: 73, iron: 2.7, vitaminA: 0, thiamin: 0.45, riboflavin: 0.19, vitaminC: 0 },
+                moong_dal: { name: "Moong Dal", group: 'pulses', isFleshFood: false, energy: 348, protein: 24.5, calcium: 75, iron: 4.4, vitaminA: 49, thiamin: 0.47, riboflavin: 0.22, vitaminC: 0 },
+                chana_dal: { name: "Chana Dal (Bengal Gram)", group: 'pulses', isFleshFood: false, energy: 372, protein: 20.8, calcium: 56, iron: 5.3, vitaminA: 52, thiamin: 0.48, riboflavin: 0.18, vitaminC: 1 },
+                rajma: { name: "Rajma (Kidney Beans)", group: 'pulses', isFleshFood: false, energy: 340, protein: 22.9, calcium: 70, iron: 5.1, vitaminA: 17, thiamin: 0.52, riboflavin: 0.19, vitaminC: 1 },
+                masoor_dal: { name: "Masoor Dal (Red Lentil)", group: 'pulses', isFleshFood: false, energy: 343, protein: 25.1, calcium: 69, iron: 6.5, vitaminA: 450, thiamin: 0.45, riboflavin: 0.22, vitaminC: 0 },
+                urad_dal: { name: "Urad Dal (Black Gram)", group: 'pulses', isFleshFood: false, energy: 347, protein: 24.0, calcium: 154, iron: 3.8, vitaminA: 38, thiamin: 0.45, riboflavin: 0.2, vitaminC: 0 },
+                soyabean: { name: "Soyabean", group: 'pulses', isFleshFood: false, energy: 446, protein: 36.5, calcium: 277, iron: 15.7, vitaminA: 2, thiamin: 0.87, riboflavin: 0.87, vitaminC: 6 },
+                chickpeas: { name: "Chickpeas (Kabuli Chana)", group: 'pulses', isFleshFood: false, energy: 364, protein: 19, calcium: 105, iron: 6.2, vitaminA: 67, thiamin: 0.48, riboflavin: 0.21, vitaminC: 4 },
+                egg_hen: { name: "Egg, Hen's", group: 'pulses', isFleshFood: true, energy: 173, protein: 13.3, calcium: 60, iron: 2.1, vitaminA: 420, thiamin: 0.1, riboflavin: 0.4, vitaminC: 0 },
+                egg_duck: { name: "Egg, Duck's", group: 'pulses', isFleshFood: true, energy: 185, protein: 12.8, calcium: 64, iron: 3.8, vitaminA: 432, thiamin: 0.16, riboflavin: 0.5, vitaminC: 0 },
+                chicken: { name: "Chicken, meat", group: 'pulses', isFleshFood: true, energy: 109, protein: 25.9, calcium: 25, iron: 0, vitaminA: 0, thiamin: 0.14, riboflavin: 0, vitaminC: 0 },
+                fish_rohu: { name: "Fish, Rohu", group: 'pulses', isFleshFood: true, energy: 97, protein: 19.5, calcium: 310, iron: 0.9, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                fish_katla: { name: "Fish, Katla", group: 'pulses', isFleshFood: true, energy: 98, protein: 19.5, calcium: 530, iron: 0.9, vitaminA: 0, thiamin: 0.05, riboflavin: 0.1, vitaminC: 1 },
+                fish_bhetki: { name: "Fish, Bhetki (Barramundi)", group: 'pulses', isFleshFood: true, energy: 105, protein: 20.5, calcium: 20, iron: 0.5, vitaminA: 30, thiamin: 0.03, riboflavin: 0.05, vitaminC: 0 },
+                fish_gurjali: { name: "Fish, Gurjali (Indian Salmon)", group: 'pulses', isFleshFood: true, energy: 150, protein: 22, calcium: 30, iron: 1.2, vitaminA: 50, thiamin: 0.08, riboflavin: 0.12, vitaminC: 1 },
+                mutton: { name: "Mutton (Goat meat)", group: 'pulses', isFleshFood: true, energy: 143, protein: 21.4, calcium: 10, iron: 2.5, vitaminA: 0, thiamin: 0.17, riboflavin: 0.3, vitaminC: 0 },
+                prawns: { name: "Prawns", group: 'pulses', isFleshFood: true, energy: 89, protein: 19.1, calcium: 323, iron: 2.8, vitaminA: 175, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                shrimp: { name: "Shrimp", group: 'pulses', isFleshFood: true, energy: 85, protein: 20.1, calcium: 70, iron: 0.5, vitaminA: 50, thiamin: 0.01, riboflavin: 0.01, vitaminC: 1.5 },
+                
+                // Milk & Products
+                milk_buffalo: { name: "Milk, Buffalo", group: 'milk', energy: 117, protein: 4.3, calcium: 210, iron: 0.2, vitaminA: 197, thiamin: 0.05, riboflavin: 0.18, vitaminC: 2 },
+                milk_cow: { name: "Milk, Cow", group: 'milk', energy: 67, protein: 3.2, calcium: 120, iron: 0.2, vitaminA: 161, thiamin: 0.04, riboflavin: 0.19, vitaminC: 1 },
+                curd: { name: "Curd (from Cow Milk)", group: 'milk', energy: 60, protein: 3.1, calcium: 149, iron: 0.2, vitaminA: 102, thiamin: 0.04, riboflavin: 0.17, vitaminC: 1 },
+                paneer: { name: "Paneer", group: 'milk', energy: 265, protein: 18.3, calcium: 208, iron: 1.4, vitaminA: 650, thiamin: 0.08, riboflavin: 0.24, vitaminC: 2 },
+                
+                // Roots & Tubers
+                potato: { name: "Potato", group: 'roots', energy: 97, protein: 1.6, calcium: 10, iron: 0.4, vitaminA: 6, thiamin: 0.1, riboflavin: 0.01, vitaminC: 17 },
+                onion: { name: "Onion", group: 'roots', energy: 59, protein: 1.8, calcium: 40, iron: 0.6, vitaminA: 0, thiamin: 0.06, riboflavin: 0.01, vitaminC: 11 },
+                carrot: { name: "Carrot", group: 'roots', energy: 48, protein: 0.9, calcium: 80, iron: 0.6, vitaminA: 2820, thiamin: 0.04, riboflavin: 0.02, vitaminC: 3 },
+                sweet_potato: { name: "Sweet Potato", group: 'roots', energy: 120, protein: 1.2, calcium: 43, iron: 0.8, vitaminA: 120, thiamin: 0.1, riboflavin: 0.05, vitaminC: 24 },
+                beetroot: { name: "Beetroot", group: 'roots', energy: 43, protein: 1.7, calcium: 18, iron: 0.9, vitaminA: 20, thiamin: 0.04, riboflavin: 0.05, vitaminC: 10 },
+                radish: { name: "Radish, white (Mooli)", group: 'roots', energy: 17, protein: 0.7, calcium: 50, iron: 0.4, vitaminA: 0, thiamin: 0.02, riboflavin: 0.02, vitaminC: 15 },
+                turnip: { name: "Turnip", group: 'roots', energy: 29, protein: 1.1, calcium: 58, iron: 0.5, vitaminA: 0, thiamin: 0.04, riboflavin: 0.06, vitaminC: 41 },
+
+                // Green Leafy Vegetables
+                spinach: { name: "Spinach (Palak)", group: 'greenLeafy', energy: 26, protein: 2.0, calcium: 73, iron: 1.1, vitaminA: 5580, thiamin: 0.03, riboflavin: 0.07, vitaminC: 28 },
+                methi: { name: "Fenugreek Leaves (Methi)", group: 'greenLeafy', energy: 49, protein: 4.4, calcium: 395, iron: 1.9, vitaminA: 6760, thiamin: 0.04, riboflavin: 0.29, vitaminC: 52 },
+                mustard_greens: { name: "Mustard Greens (Sarson)", group: 'greenLeafy', energy: 32, protein: 4.0, calcium: 103, iron: 1.8, vitaminA: 7800, thiamin: 0.06, riboflavin: 0.13, vitaminC: 33 },
+                amaranth_leaves: { name: "Amaranth Leaves (Chaulai)", group: 'greenLeafy', energy: 45, protein: 4.0, calcium: 397, iron: 3.4, vitaminA: 5520, thiamin: 0.03, riboflavin: 0.3, vitaminC: 99 },
+
+                // Other Vegetables
+                parwar: { name: "Parwar (Pointed Gourd)", group: 'otherVeg', energy: 20, protein: 2.0, calcium: 30, iron: 0.6, vitaminA: 74, thiamin: 0.05, riboflavin: 0.06, vitaminC: 29 },
+                tomato: { name: "Tomato", group: 'otherVeg', energy: 20, protein: 0.9, calcium: 48, iron: 0.4, vitaminA: 320, thiamin: 0.07, riboflavin: 0.01, vitaminC: 27 },
+                brinjal: { name: "Brinjal (Eggplant)", group: 'otherVeg', energy: 24, protein: 1.4, calcium: 18, iron: 0.4, vitaminA: 124, thiamin: 0.04, riboflavin: 0.11, vitaminC: 12 },
+                okra: { name: "Okra (Lady's Finger)", group: 'otherVeg', energy: 35, protein: 2.2, calcium: 66, iron: 0.4, vitaminA: 280, thiamin: 0.07, riboflavin: 0.08, vitaminC: 13 },
+                cauliflower: { name: "Cauliflower", group: 'otherVeg', energy: 30, protein: 2.7, calcium: 33, iron: 0.8, vitaminA: 30, thiamin: 0.04, riboflavin: 0.03, vitaminC: 59 },
+                cucumber: { name: "Cucumber", group: 'otherVeg', energy: 13, protein: 0.6, calcium: 25, iron: 0.2, vitaminA: 180, thiamin: 0.03, riboflavin: 0.02, vitaminC: 7 },
+                cabbage: { name: "Cabbage", group: 'otherVeg', energy: 27, protein: 1.8, calcium: 39, iron: 0.4, vitaminA: 130, thiamin: 0.05, riboflavin: 0.03, vitaminC: 124 },
+                bottle_gourd: { name: "Bottle Gourd (Lauki)", group: 'otherVeg', energy: 12, protein: 0.2, calcium: 20, iron: 0.1, vitaminA: 0, thiamin: 0.03, riboflavin: 0.01, vitaminC: 6 },
+                bitter_gourd: { name: "Bitter Gourd (Karela)", group: 'otherVeg', energy: 25, protein: 1.6, calcium: 20, iron: 0.4, vitaminA: 210, thiamin: 0.05, riboflavin: 0.06, vitaminC: 88 },
+                pumpkin: { name: "Pumpkin", group: 'otherVeg', energy: 25, protein: 1.4, calcium: 10, iron: 0.4, vitaminA: 2100, thiamin: 0.05, riboflavin: 0.07, vitaminC: 9 },
+
+                // Fruits
+                apple: { name: "Apple", group: 'fruits', energy: 59, protein: 0.2, calcium: 10, iron: 0.1, vitaminA: 0, thiamin: 0.02, riboflavin: 0.02, vitaminC: 1 },
+                banana: { name: "Banana", group: 'fruits', energy: 116, protein: 1.2, calcium: 17, iron: 0.4, vitaminA: 78, thiamin: 0.05, riboflavin: 0.07, vitaminC: 7 },
+                mango: { name: "Mango, ripe", group: 'fruits', energy: 74, protein: 0.6, calcium: 14, iron: 0.2, vitaminA: 2740, thiamin: 0.08, riboflavin: 0.09, vitaminC: 16 },
+                guava: { name: "Guava", group: 'fruits', energy: 51, protein: 0.9, calcium: 10, iron: 0.3, vitaminA: 0, thiamin: 0.03, riboflavin: 0.04, vitaminC: 212 },
+                orange: { name: "Orange", group: 'fruits', energy: 48, protein: 0.7, calcium: 26, iron: 0.1, vitaminA: 210, thiamin: 0.1, riboflavin: 0.03, vitaminC: 30 },
+                pomegranate: { name: "Pomegranate", group: 'fruits', energy: 77, protein: 1.6, calcium: 10, iron: 0.3, vitaminA: 0, thiamin: 0.06, riboflavin: 0.1, vitaminC: 16 },
+                grapes: { name: "Grapes", group: 'fruits', energy: 71, protein: 0.5, calcium: 20, iron: 0.2, vitaminA: 0, thiamin: 0.05, riboflavin: 0.02, vitaminC: 1 },
+                watermelon: { name: "Watermelon", group: 'fruits', energy: 16, protein: 0.2, calcium: 11, iron: 0.2, vitaminA: 569, thiamin: 0.02, riboflavin: 0.02, vitaminC: 1 },
+                papaya: { name: "Papaya, ripe", group: 'fruits', energy: 32, protein: 0.6, calcium: 17, iron: 0.1, vitaminA: 2020, thiamin: 0.04, riboflavin: 0.25, vitaminC: 57 },
+                
+                // Fats, Nuts, Sugar
+                groundnut_oil: { name: "Oil, Groundnut", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                ghee: { name: "Ghee", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 600, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                butter: { name: "Butter", group: 'fats', energy: 717, protein: 0.9, calcium: 24, iron: 0.0, vitaminA: 684, thiamin: 0.01, riboflavin: 0.03, vitaminC: 0 },
+                mustard_oil: { name: "Oil, Mustard", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                sunflower_oil: { name: "Oil, Sunflower", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                rice_bran_oil: { name: "Oil, Rice Bran", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                coconut_oil: { name: "Oil, Coconut", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                olive_oil: { name: "Oil, Olive", group: 'fats', energy: 900, protein: 0, calcium: 0, iron: 0, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+
+                almonds: { name: "Almonds", group: 'nuts', energy: 655, protein: 20.8, calcium: 230, iron: 5.1, vitaminA: 0, thiamin: 0.24, riboflavin: 0.57, vitaminC: 0 },
+                walnuts: { name: "Walnuts", group: 'nuts', energy: 687, protein: 15.6, calcium: 100, iron: 2.1, vitaminA: 40, thiamin: 0.3, riboflavin: 0.13, vitaminC: 0 },
+                cashew_nuts: { name: "Cashew Nuts", group: 'nuts', energy: 596, protein: 21.2, calcium: 50, iron: 5.8, vitaminA: 0, thiamin: 0.63, riboflavin: 0.26, vitaminC: 0 },
+                
+                sugar: { name: "Sugar", group: 'sugar', energy: 398, protein: 0.1, calcium: 12, iron: 0.1, vitaminA: 0, thiamin: 0, riboflavin: 0, vitaminC: 0 },
+                jaggery: { name: "Jaggery (Gur)", group: 'sugar', energy: 383, protein: 0.4, calcium: 80, iron: 2.6, vitaminA: 0, thiamin: 0.01, riboflavin: 0.04, vitaminC: 0 }
+            };
+
+            // --- DOM Elements ---
+            const form = document.getElementById('add-member-form');
+            const ageYearsInput = document.getElementById('age_years');
+            const ageMonthsInput = document.getElementById('age_months');
+            const genderInput = document.getElementById('gender');
+            const statusContainer = document.getElementById('status-container');
+            const familyListEl = document.getElementById('family-list');
+            const calculateRdaBtn = document.getElementById('calculate-rda-btn');
+            const clearFamilyBtn = document.getElementById('clear-family-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const nutrientResultsEl = document.getElementById('nutrient-results');
+            const foodGroupResultsEl = document.getElementById('food-group-results');
+            const shareBtn = document.getElementById('share-btn');
+            const toastEl = document.getElementById('toast-notification');
+            const shareModal = document.getElementById('share-modal');
+            const shareLinkInput = document.getElementById('share-link-input');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const featureButtons = document.getElementById('feature-buttons');
+            const mealPlanBtn = document.getElementById('meal-plan-btn');
+            const printBtn = document.getElementById('print-btn');
+            const mealPlanContainer = document.getElementById('meal-plan-container');
+            const reportDateEl = document.getElementById('report-date');
+            const consumptionSection = document.getElementById('consumption-section');
+            const addFoodForm = document.getElementById('add-food-form');
+            const foodItemSelect = document.getElementById('food-item');
+            const consumedFoodListEl = document.getElementById('consumed-food-list');
+            const calculateBalanceBtn = document.getElementById('calculate-balance-btn');
+            const balanceResultsEl = document.getElementById('balance-results');
+            const foodGroupBalanceResultsEl = document.getElementById('food-group-balance-results');
+
+
+            // --- App State ---
+            let familyMembers = [];
+            let totalFoodGroups = null;
+            let totalNutrientRDA = null;
+            let consumedFoods = [];
+
+            // --- Functions ---
+            const populateFoodDropdown = () => {
+                foodItemSelect.innerHTML = '';
+                const foodGroupLabels = {
+                    cereals: 'Cereals & Millets',
+                    pulses: 'Pulses & Flesh Foods',
+                    milk: 'Milk & Milk Products',
+                    roots: 'Roots & Tubers',
+                    greenLeafy: 'Green Leafy Vegetables',
+                    otherVeg: 'Other Vegetables',
+                    fruits: 'Fruits',
+                    nuts: 'Nuts & Seeds',
+                    fats: 'Fats & Oils',
+                    sugar: 'Sugar & Jaggery'
+                };
+
+                const groupedFoods = {};
+                for (const key in foodDB) {
+                    const food = foodDB[key];
+                    if (!groupedFoods[food.group]) {
+                        groupedFoods[food.group] = [];
+                    }
+                    groupedFoods[food.group].push({ key, name: food.name });
+                }
+
+                for (const groupKey in foodGroupLabels) {
+                    if (groupedFoods[groupKey]) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = foodGroupLabels[groupKey];
+                        
+                        groupedFoods[groupKey].sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        groupedFoods[groupKey].forEach(food => {
+                            const option = document.createElement('option');
+                            option.value = food.key;
+                            option.textContent = food.name;
+                            optgroup.appendChild(option);
+                        });
+                        foodItemSelect.appendChild(optgroup);
+                    }
+                }
+            };
+
+            const saveToStorage = () => {
+                localStorage.setItem('familyMembers', JSON.stringify(familyMembers));
+                localStorage.setItem('consumedFoods', JSON.stringify(consumedFoods));
+            };
+
+            const loadFromStorage = () => {
+                const storedFamily = localStorage.getItem('familyMembers');
+                if (storedFamily) {
+                    familyMembers = JSON.parse(storedFamily);
+                    renderFamilyList();
+                }
+                const storedFoods = localStorage.getItem('consumedFoods');
+                if (storedFoods) {
+                    consumedFoods = JSON.parse(storedFoods);
+                    renderConsumedList();
+                }
+            };
+
+            const toggleStatusField = () => {
+                const ageYears = parseInt(ageYearsInput.value, 10) || 0;
+                const gender = genderInput.value;
+                if (gender === 'female' && ageYears >= 16) {
+                    statusContainer.classList.remove('hidden');
+                } else {
+                    statusContainer.classList.add('hidden');
+                }
+            };
+
+            const renderFamilyList = () => {
+                familyListEl.innerHTML = '';
+                if (familyMembers.length === 0) {
+                    familyListEl.innerHTML = '<p class="text-gray-500">No members added yet.</p>';
+                    calculateRdaBtn.disabled = true;
+                    clearFamilyBtn.disabled = true;
+                } else {
+                    familyMembers.forEach(member => {
+                        const memberDiv = document.createElement('div');
+                        memberDiv.className = 'flex justify-between items-center bg-gray-100 p-3 rounded-md';
+                        
+                        let ageString = '';
+                        if (member.age.years > 0) ageString += `${member.age.years} yrs`;
+                        if (member.age.months > 0) ageString += (ageString ? ', ' : '') + `${member.age.months} mos`;
+                        if (!ageString) ageString = '0 mos';
+
+                        let memberDescription = `${member.gender.charAt(0).toUpperCase() + member.gender.slice(1)}, ${ageString}, ${member.activity.charAt(0).toUpperCase() + member.activity.slice(1)}`;
+                        if (member.status !== 'normal' && member.gender === 'female') {
+                            const statusText = member.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            memberDescription += `, ${statusText}`;
+                        }
+
+                        memberDiv.innerHTML = `
+                            <p class="text-gray-700">${memberDescription}</p>
+                            <button data-id="${member.id}" class="remove-btn text-red-500 hover:text-red-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        `;
+                        familyListEl.appendChild(memberDiv);
+                    });
+                    calculateRdaBtn.disabled = false;
+                    clearFamilyBtn.disabled = false;
+                }
+            };
+            
+            const addMember = (e) => {
+                e.preventDefault();
+                const ageYears = parseInt(form.age_years.value, 10) || 0;
+                const ageMonths = parseInt(form.age_months.value, 10) || 0;
+                
+                if (ageYears === 0 && ageMonths === 0) {
+                     if (!confirm("Add a member aged 0 months? This will use the 0-6 months infant category.")) {
+                        return;
+                     }
+                }
+                
+                const gender = form.gender.value;
+                const activity = form.activity.value;
+                const status = (gender === 'female' && ageYears >= 16) ? form.status.value : 'normal';
+
+                const newMember = {
+                    id: Date.now(),
+                    age: { years: ageYears, months: ageMonths },
+                    gender, activity, status
+                };
+
+                familyMembers.push(newMember);
+                saveToStorage();
+                renderFamilyList();
+                form.reset();
+                toggleStatusField();
+            };
+            
+            const removeMember = (e) => {
+                 if (e.target.closest('.remove-btn')) {
+                    const button = e.target.closest('.remove-btn');
+                    const idToRemove = parseInt(button.dataset.id, 10);
+                    familyMembers = familyMembers.filter(member => member.id !== idToRemove);
+                    saveToStorage();
+                    renderFamilyList();
+                 }
+            };
+
+            const clearFamily = () => {
+                if (confirm('Are you sure you want to remove all family members and consumed foods?')) {
+                    familyMembers = [];
+                    consumedFoods = [];
+                    saveToStorage();
+                    renderFamilyList();
+                    renderConsumedList();
+                    resultsContainer.classList.add('hidden');
+                    featureButtons.classList.add('hidden');
+                    mealPlanContainer.classList.add('hidden');
+                }
+            };
+
+            const addFoodItem = (e) => {
+                e.preventDefault();
+                const foodKey = addFoodForm['food-item'].value;
+                const quantity = parseInt(addFoodForm['food-quantity'].value, 10);
+                if (isNaN(quantity) || quantity <= 0) {
+                    showToast("Please enter a valid quantity.");
+                    return;
+                }
+                consumedFoods.push({ id: Date.now(), key: foodKey, quantity });
+                saveToStorage();
+                renderConsumedList();
+                addFoodForm.reset();
+            };
+
+            const removeConsumedFood = (e) => {
+                if (e.target.closest('.remove-food-btn')) {
+                    const idToRemove = parseInt(e.target.closest('.remove-food-btn').dataset.id, 10);
+                    consumedFoods = consumedFoods.filter(food => food.id !== idToRemove);
+                    saveToStorage();
+                    renderConsumedList();
+                }
+            };
+
+            const renderConsumedList = () => {
+                consumedFoodListEl.innerHTML = '';
+                if (consumedFoods.length === 0) {
+                    consumedFoodListEl.innerHTML = '<p class="text-gray-500">No food added yet.</p>';
+                    calculateBalanceBtn.disabled = true;
+                } else {
+                    calculateBalanceBtn.disabled = false;
+                    consumedFoods.forEach(food => {
+                        const foodDiv = document.createElement('div');
+                        foodDiv.className = 'flex justify-between items-center bg-gray-100 p-2 rounded';
+                        foodDiv.innerHTML = `
+                            <span>${foodDB[food.key].name} - ${food.quantity}g</span>
+                            <button data-id="${food.id}" class="remove-food-btn text-red-500 hover:text-red-700">&times;</button>
+                        `;
+                        consumedFoodListEl.appendChild(foodDiv);
+                    });
+                }
+            };
+            
+             const getRdaValues = (member) => {
+                let nutrientKey, foodGroupKey;
+                const ageYears = member.age.years;
+                const totalMonths = (ageYears * 12) + member.age.months;
+                
+                if (totalMonths <= 6) {
+                    nutrientKey = 'infant_0_6'; foodGroupKey = 'infant_0_6';
+                } else if (totalMonths < 12) {
+                    nutrientKey = 'infant_7_12'; foodGroupKey = 'infant_7_12';
+                } else if (ageYears <= 3) {
+                    nutrientKey = 'children_1_3'; foodGroupKey = 'children_1_3';
+                } else if (ageYears <= 6) {
+                    nutrientKey = 'children_4_6'; foodGroupKey = 'children_4_6';
+                } else if (ageYears <= 9) {
+                    nutrientKey = 'children_7_9'; foodGroupKey = 'children_7_9';
+                } else if (ageYears <= 12) {
+                    nutrientKey = 'children_10_12'; foodGroupKey = 'children_10_12';
+                } else if (ageYears <= 15) {
+                    nutrientKey = 'children_13_15'; foodGroupKey = 'children_13_15';
+                } else if (ageYears <= 18) {
+                    nutrientKey = 'children_16_18'; foodGroupKey = 'children_16_18';
+                } else {
+                    nutrientKey = 'adult'; foodGroupKey = 'adult';
+                }
+
+                let nutrients, foodGroups;
+                if (nutrientKey.startsWith('infant') || nutrientKey.startsWith('children')) {
+                    nutrients = rdaData.nutrients[nutrientKey][member.gender];
+                    foodGroups = rdaData.foodGroups[foodGroupKey][member.gender];
+                } else {
+                    if (member.gender === 'female' && member.status !== 'normal') {
+                        nutrients = rdaData.nutrients.adult.female[member.status];
+                        foodGroups = rdaData.foodGroups.adult.female[member.status];
+                    } else {
+                        nutrients = rdaData.nutrients.adult[member.gender][member.activity];
+                        foodGroups = rdaData.foodGroups.adult[member.gender][member.activity];
+                    }
+                }
+                return { nutrients, foodGroups };
+            };
+
+            const calculateRda = () => {
+                const nutrientLabels = { energy: 'Energy (Kcal)', protein: 'Protein (g)', calcium: 'Calcium (mg)', iron: 'Iron (mg)', vitaminA: 'Vitamin A (µg RE)', thiamin: 'Thiamin (mg)', riboflavin: 'Riboflavin (mg)', vitaminC: 'Vitamin C (mg)'};
+                const foodGroupLabels = { cereals: 'Cereals & Millets', pulses: 'Pulses', milk: 'Milk & Products', roots: 'Roots & Tubers', greenLeafy: 'Green Leafy Veg', otherVeg: 'Other Vegetables', fruits: 'Fruits', fats: 'Fats & Oils', sugar: 'Sugar & Jaggery', nuts: 'Nuts & Seeds'};
+
+                const totals = {
+                    nutrients: Object.keys(nutrientLabels).reduce((acc, key) => ({...acc, [key]: 0 }), {}),
+                    foodGroups: Object.keys(foodGroupLabels).reduce((acc, key) => ({...acc, [key]: 0 }), {})
+                };
+
+                const individualResults = familyMembers.map(member => ({ member, rda: getRdaValues(member) }));
+
+                individualResults.forEach(res => {
+                    for(const key in totals.nutrients) totals.nutrients[key] += res.rda.nutrients[key] || 0;
+                    for(const key in totals.foodGroups) totals.foodGroups[key] += res.rda.foodGroups[key] || 0;
+                });
+                
+                totalNutrientRDA = totals.nutrients;
+                totalFoodGroups = totals.foodGroups;
+
+                renderTable('Nutrient Requirements (RDA)', nutrientLabels, individualResults, totals.nutrients, nutrientResultsEl);
+                renderTable('Daily Food Group Requirements (RDA)', foodGroupLabels, individualResults, totals.foodGroups, foodGroupResultsEl);
+
+                resultsContainer.classList.remove('hidden');
+                featureButtons.classList.add('hidden'); 
+                mealPlanContainer.classList.add('hidden');
+                balanceResultsEl.innerHTML = '';
+                balanceResultsEl.classList.add('hidden');
+                foodGroupBalanceResultsEl.innerHTML = '';
+                foodGroupBalanceResultsEl.classList.add('hidden');
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            };
+            
+            const calculateBalance = () => {
+                if (!totalNutrientRDA || !totalFoodGroups) {
+                    showToast("Please calculate RDA first by clicking the 'Calculate Recommended Intake' button.");
+                    return;
+                }
+                if (consumedFoods.length === 0) {
+                    showToast("Please add consumed foods before calculating the balance.");
+                    return;
+                }
+                const nutrientLabels = { energy: 'Energy (Kcal)', protein: 'Protein (g)', calcium: 'Calcium (mg)', iron: 'Iron (mg)', vitaminA: 'Vitamin A (µg RE)', thiamin: 'Thiamin (mg)', riboflavin: 'Riboflavin (mg)', vitaminC: 'Vitamin C (mg)'};
+                const foodGroupLabels = { cereals: 'Cereals & Millets', pulses: 'Pulses', milk: 'Milk & Products', roots: 'Roots & Tubers', greenLeafy: 'Green Leafy Veg', otherVeg: 'Other Vegetables', fruits: 'Fruits', fats: 'Fats & Oils', sugar: 'Sugar & Jaggery', nuts: 'Nuts & Seeds'};
+
+                const consumedNutrientTotals = Object.keys(nutrientLabels).reduce((acc, key) => ({...acc, [key]: 0 }), {});
+                const consumedFoodGroupTotals = Object.keys(foodGroupLabels).reduce((acc, key) => ({...acc, [key]: 0 }), {});
+
+                consumedFoods.forEach(item => {
+                    const foodData = foodDB[item.key];
+                    const factor = item.quantity / 100;
+                    // Sum up nutrients
+                    for (const nutrient in consumedNutrientTotals) {
+                        consumedNutrientTotals[nutrient] += (foodData[nutrient] || 0) * factor;
+                    }
+                    // Sum up food groups with conversion for flesh foods
+                    const foodGroup = foodData.group;
+                    const quantity = item.quantity;
+
+                    if (foodGroup && consumedFoodGroupTotals.hasOwnProperty(foodGroup)) {
+                        if (foodGroup === 'pulses' && foodData.isFleshFood) {
+                            // Apply conversion for flesh foods: 50g flesh food = 30g pulses
+                            consumedFoodGroupTotals.pulses += quantity * (30 / 50);
+                        } else {
+                            // Add directly for all other foods
+                            consumedFoodGroupTotals[foodGroup] += quantity;
+                        }
+                    }
+                });
+
+                renderBalanceTable('Nutrient Balance Report', nutrientLabels, totalNutrientRDA, consumedNutrientTotals, balanceResultsEl);
+                renderBalanceTable('Food Group Balance Report (grams)', foodGroupLabels, totalFoodGroups, consumedFoodGroupTotals, foodGroupBalanceResultsEl);
+
+                featureButtons.classList.remove('hidden');
+                balanceResultsEl.classList.remove('hidden');
+                foodGroupBalanceResultsEl.classList.remove('hidden');
+                balanceResultsEl.scrollIntoView({ behavior: 'smooth'});
+            };
+
+            const renderBalanceTable = (title, labels, rda, consumed, element) => {
+                let tableHTML = `<h2 class="text-xl font-semibold mb-4 text-gray-800">${title}</h2>`;
+                tableHTML += `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="table-header-custom text-left">${title.includes('Nutrient') ? 'Nutrient' : 'Food Group'}</th>
+                            <th class="table-header-custom">Recommended (RDA)</th>
+                            <th class="table-header-custom">Consumed</th>
+                            <th class="table-header-custom">Balance (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">`;
+
+                Object.keys(labels).forEach((key, index) => {
+                    const recommendedValue = rda[key];
+                    const consumedValue = consumed[key];
+                    const balance = recommendedValue > 0 ? ((consumedValue - recommendedValue) / recommendedValue) * 100 : (consumedValue > 0 ? 100 : 0);
+                    
+                    let balanceClass = 'text-gray-800';
+                    if (balance < 0) {
+                        balanceClass = 'text-red-600 font-semibold';
+                    } else if ((key === 'energy' || key === 'fats' || key === 'sugar') && balance > 20) { 
+                        balanceClass = 'text-yellow-600 font-semibold';
+                    } else {
+                         balanceClass = 'text-green-600 font-semibold';
+                    }
+
+                    const rowClass = index % 2 === 0 ? '' : 'bg-gray-50';
+                    tableHTML += `<tr class="${rowClass}">
+                        <td class="table-cell-custom text-left font-medium text-gray-900">${labels[key]}</td>
+                        <td class="table-cell-custom">${recommendedValue.toFixed(1).replace(/\.0$/, '')}</td>
+                        <td class="table-cell-custom">${consumedValue.toFixed(1).replace(/\.0$/, '')}</td>
+                        <td class="table-cell-custom ${balanceClass}">${balance.toFixed(0)}%</td>
+                    </tr>`;
+                });
+
+                tableHTML += `</tbody></table></div>`;
+                element.innerHTML = tableHTML;
+            }
+
+            function renderTable(title, labels, individualData, totalData, element) {
+                let tableHTML = `<h2 class="text-xl font-semibold mb-4 text-gray-800">${title}</h2>`;
+                tableHTML += `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">`;
+                
+                tableHTML += `<thead class="bg-gray-50"><tr><th class="table-header-custom text-left">Requirement</th>`;
+                individualData.forEach(res => {
+                    let ageString = res.member.age.years > 0 ? `${res.member.age.years}y` : '';
+                    if (res.member.age.months > 0) ageString += (ageString ? ' ' : '') + `${res.member.age.months}m`;
+                    if (!ageString) ageString = '0m';
+                    
+                    let headerText = `${res.member.gender.charAt(0).toUpperCase()}, ${ageString}`;
+                    if (res.member.age.years > 12) {
+                        headerText += `, ${res.member.activity.charAt(0).toUpperCase()}`;
+                     }
+                    tableHTML += `<th class="table-header-custom">${headerText}</th>`;
+                });
+                tableHTML += `<th class="table-header-custom text-indigo-600">Total</th></tr></thead>`;
+                
+                tableHTML += `<tbody class="bg-white divide-y divide-gray-200">`;
+                Object.keys(labels).forEach((key, index) => {
+                    const rowClass = index % 2 === 0 ? '' : 'bg-gray-50';
+                    tableHTML += `<tr class="${rowClass}"><td class="table-cell-custom text-left font-medium text-gray-900">${labels[key]}</td>`;
+                    
+                    individualData.forEach(res => {
+                        const rdaSet = title.includes('Nutrient') ? res.rda.nutrients : res.rda.foodGroups;
+                        const value = rdaSet[key] !== undefined ? parseFloat(rdaSet[key]).toFixed(1).replace(/\.0$/, '') : 'N/A';
+                        const totalMonths = (res.member.age.years * 12) + res.member.age.months;
+                        const displayValue = totalMonths <= 6 && title.includes('Food Group') ? 'EBF*' : value;
+                        const cellClass = displayValue === 'EBF*' ? 'text-xs text-gray-500' : 'text-gray-700';
+
+                        tableHTML += `<td class="table-cell-custom ${cellClass}">${displayValue}</td>`;
+                    });
+                    
+                    const totalValue = totalData[key].toFixed(1).replace(/\.0$/, '');
+                    tableHTML += `<td class="table-cell-custom font-semibold text-indigo-700">${totalValue}</td></tr>`;
+                });
+                tableHTML += `</tbody></table></div>`;
+                if(title.includes('Food Group')) {
+                    tableHTML += `<p class="text-xs text-gray-500 mt-2">*EBF: Exclusively Breastfed. Food group requirements start from 6-12 months.</p>`;
+                }
+                element.innerHTML = tableHTML;
+            }
+            
+             const generateMealPlan = () => {
+                if (!totalFoodGroups) return;
+                
+                const plan = {
+                    breakfast: { cereals: 0.3, milk: 0.5, fruits: 0.3, fats: 0.2, sugar: 0.3, nuts: 0.5 },
+                    lunch: { cereals: 0.4, pulses: 0.5, milk: 0.5, roots: 0.5, greenLeafy: 0.5, otherVeg: 0.5, fats: 0.4 },
+                    snack: { fruits: 0.7, nuts: 0.5 },
+                    dinner: { cereals: 0.3, pulses: 0.5, roots: 0.5, greenLeafy: 0.5, otherVeg: 0.5, fats: 0.4, sugar: 0.7 }
+                };
+
+                let mealPlanHTML = `<h2 class="text-xl font-semibold mb-4 text-gray-800">Sample Family Meal Plan</h2>`;
+                mealPlanHTML += `<p class="text-sm text-gray-600 mb-4">This is an illustrative one-day plan distributing the total required food group quantities (in grams) for the entire family across different meals.</p>`;
+                mealPlanHTML += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">`;
+
+                Object.keys(plan).forEach(meal => {
+                    mealPlanHTML += `<div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-2 capitalize text-indigo-700">${meal}</h3>
+                        <ul class="text-sm space-y-1">`;
+                    
+                    Object.keys(plan[meal]).forEach(foodGroup => {
+                        const amount = (totalFoodGroups[foodGroup] * plan[meal][foodGroup]).toFixed(0);
+                        if (amount > 0) {
+                            const label = foodGroup.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                            mealPlanHTML += `<li><strong>${label}:</strong> ${amount}g</li>`;
+                        }
+                    });
+                    mealPlanHTML += `</ul></div>`;
+                });
+                
+                mealPlanHTML += `</div>`;
+                mealPlanContainer.innerHTML = mealPlanHTML;
+                mealPlanContainer.classList.remove('hidden');
+                mealPlanContainer.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const printReport = () => {
+                reportDateEl.textContent = `Generated on: ${new Date().toLocaleDateString()}`;
+                window.print();
+            };
+            
+            const showToast = (message) => {
+                toastEl.textContent = message;
+                toastEl.classList.add('show');
+                setTimeout(() => {
+                    toastEl.classList.remove('show');
+                }, 3000);
+            };
+
+            const shareLink = () => {
+                const linkToCopy = window.location.href;
+                const showManualCopyModal = () => {
+                    shareLinkInput.value = linkToCopy;
+                    shareModal.classList.remove('hidden');
+                    shareLinkInput.select();
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(linkToCopy).then(() => showToast('Link copied to clipboard!')).catch(showManualCopyModal);
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = linkToCopy;
+                    textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus(); textArea.select();
+                    try {
+                        document.execCommand('copy') ? showToast('Link copied to clipboard!') : showManualCopyModal();
+                    } catch (err) {
+                        showManualCopyModal();
+                    }
+                    document.body.removeChild(textArea);
+                }
+            };
+            
+            // --- Event Listeners ---
+            ageYearsInput.addEventListener('input', toggleStatusField);
+            genderInput.addEventListener('change', toggleStatusField);
+            form.addEventListener('submit', addMember);
+            familyListEl.addEventListener('click', removeMember);
+            clearFamilyBtn.addEventListener('click', clearFamily);
+            calculateRdaBtn.addEventListener('click', calculateRda);
+            calculateBalanceBtn.addEventListener('click', calculateBalance);
+            addFoodForm.addEventListener('submit', addFoodItem);
+            consumedFoodListEl.addEventListener('click', removeConsumedFood);
+            mealPlanBtn.addEventListener('click', generateMealPlan);
+            printBtn.addEventListener('click', printReport);
+            shareBtn.addEventListener('click', shareLink);
+            closeModalBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+
+            // --- Initial Load ---
+            populateFoodDropdown();
+            loadFromStorage();
+        });
+    </script>
+</body>
+</html>
+
