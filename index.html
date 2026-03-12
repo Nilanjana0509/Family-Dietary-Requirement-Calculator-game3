@@ -82,14 +82,16 @@
     <!-- landing page -->
     <div
       id="landing-page"
-      class="min-h-screen flex items-center justify-center"
+      class="min-h-screen w-full flex items-center justify-center bg-gray-100"
     >
-      <div class="bg-white p-10 rounded-3xl shadow-2xl text-center">
+      <div
+        class="bg-white w-full max-w-6xl p-10 rounded-3xl shadow-2xl text-center"
+      >
         <!-- Image -->
         <img
           src="./company-logo.jpg"
           alt="Landing Image"
-          class="w-64 md:w-96 mx-auto object-contain"
+          class="w-full max-w-3xl mx-auto object-contain"
         />
       </div>
     </div>
@@ -2420,7 +2422,7 @@
 
             // Show next page
             rootPageId.classList.remove("hidden");
-            verifyPasskey();
+            // verifyPasskey();
           }, 3000); // 3 seconds
         }
 
@@ -2708,10 +2710,10 @@
         };
 
         const calculateRda = () => {
-          if (!allowPermission) {
-            addModals("subscribe-modal");
-            return;
-          }
+          // if (!allowPermission) {
+          //   addModals("subscribe-modal");
+          //   return;
+          // }
 
           const nutrientLabels = {
             energy: "Energy (Kcal)",
